@@ -61,15 +61,21 @@
                     return [];
                 }
             });
+            
+            // Settings state
+            const [emergencyContact, setEmergencyContact] = useState(() => localStorage.getItem('baby_contact_name') || "Wife");
+            const [contactPhone, setContactPhone] = useState(() => localStorage.getItem('baby_contact_phone') || "");
+            
             const [showNotification, setShowNotification] = useState(null);
-            const [emergencyContact, setEmergencyContact] = useState("Dad");
             const [isAlerting, setIsAlerting] = useState(false);
             const [showSettings, setShowSettings] = useState(false);
             const [isExpanded, setIsExpanded] = useState(false);
 
             useEffect(() => {
                 localStorage.setItem('baby_logs_v3', JSON.stringify(logs));
-            }, [logs]);
+                localStorage.setItem('baby_contact_name', emergencyContact);
+                localStorage.setItem('baby_contact_phone', contactPhone);
+            }, [logs, emergencyContact, contactPhone]);
 
             const addLog = (type, label) => {
                 const newEntry = { id: Date.now(), type, label, timestamp: new Date().toISOString() };
@@ -83,11 +89,26 @@
             };
 
             const sendAlert = () => {
+                if (!contactPhone) {
+                    triggerToast("Set a phone number in settings first!");
+                    setShowSettings(true);
+                    return;
+                }
+
                 setIsAlerting(true);
+                
+                // This creates a link that opens the Messages app
+                // format: sms:phonenumber&body=message
+                const message = encodeURIComponent("Hey! I need a hand with the baby real quick.");
+                const smsLink = `sms:${contactPhone}&body=${message}`;
+                
+                // Trigger the SMS app
+                window.location.href = smsLink;
+
                 setTimeout(() => {
                     setIsAlerting(false);
-                    triggerToast(`Alert sent to ${emergencyContact}`);
-                }, 1500);
+                    triggerToast(`Opening messages for ${emergencyContact}`);
+                }, 1000);
             };
 
             const dailyStats = useMemo(() => {
@@ -138,7 +159,7 @@
                         }`}
                     >
                         <Icon name="BellRing" size={18} />
-                        <span className="font-bold tracking-tight">{isAlerting ? 'Notifying...' : `Notify ${emergencyContact}`}</span>
+                        <span className="font-bold tracking-tight">{isAlerting ? 'Sending...' : `Notify ${emergencyContact}`}</span>
                     </button>
 
                     <section className="mt-10 px-2 pb-10">
@@ -209,13 +230,31 @@
                                         <Icon name="X" size={24} />
                                     </button>
                                 </div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">caregiver contact</label>
-                                <input 
-                                    type="text" 
-                                    value={emergencyContact} 
-                                    onChange={(e) => setEmergencyContact(e.target.value)} 
-                                    className="w-full bg-[#F8F9F9] rounded-2xl p-4 font-medium mb-8 outline-none border border-transparent focus:border-slate-200" 
-                                />
+                                
+                                <div className="space-y-6 mb-8">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">caregiver name</label>
+                                        <input 
+                                            type="text" 
+                                            value={emergencyContact} 
+                                            onChange={(e) => setEmergencyContact(e.target.value)} 
+                                            placeholder="Wife"
+                                            className="w-full bg-[#F8F9F9] rounded-2xl p-4 font-medium outline-none border border-transparent focus:border-slate-200" 
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">phone number</label>
+                                        <input 
+                                            type="tel" 
+                                            value={contactPhone} 
+                                            onChange={(e) => setContactPhone(e.target.value)} 
+                                            placeholder="1234567890"
+                                            className="w-full bg-[#F8F9F9] rounded-2xl p-4 font-medium outline-none border border-transparent focus:border-slate-200" 
+                                        />
+                                        <p className="text-[10px] text-slate-400 mt-2 ml-1 italic">* used to trigger a text message</p>
+                                    </div>
+                                </div>
+
                                 <button 
                                     onClick={() => setShowSettings(false)} 
                                     className="w-full bg-[#5D6D7E] text-white py-5 rounded-[2rem] font-bold text-sm uppercase tracking-widest active:scale-95 transition-transform"
