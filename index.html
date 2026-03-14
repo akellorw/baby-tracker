@@ -1,327 +1,271 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Baby, 
-  Milk, 
-  Droplets, 
-  Send, 
-  Clock, 
-  ChevronRight, 
-  History, 
-  BellRing,
-  Settings,
-  X
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Baby Tracker</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React and Babel to run the code in the browser -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .animate-slide-up { animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        i { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
+    </style>
+</head>
+<body class="bg-[#FDFCF9]">
+    <div id="root"></div>
 
-/**
- * Custom Poop Icon (SVG) - Minimalist style to match new palette
- */
-const PoopIcon = ({ size = 24, className = "" }) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="1.5" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <path d="M7 15a3 3 0 0 0 3 3 3 3 0 0 0 3-3V9a3 3 0 0 0-3-3 3 3 0 0 0-3 3v6Z" />
-    <path d="M17 15a3 3 0 0 0-3-3 3 3 0 0 0-3 3v2a3 3 0 0 0 3 3 3 3 0 0 0 3-3v-2Z" />
-  </svg>
-);
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
 
-const App = () => {
-  // --- State Management ---
-  const [logs, setLogs] = useState(() => {
-    try {
-      const saved = localStorage.getItem('baby_logs_v3');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
-  
-  const [showNotification, setShowNotification] = useState(null);
-  const [emergencyContact, setEmergencyContact] = useState("Dad");
-  const [isAlerting, setIsAlerting] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+        // Simplified Icon component that uses Lucide's createIcons method
+        const Icon = ({ name, size = 24, className = "" }) => {
+            useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            });
+            
+            const lucideName = name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+            
+            return (
+                <i 
+                    data-lucide={lucideName} 
+                    style={{ width: size, height: size }} 
+                    className={className}
+                ></i>
+            );
+        };
 
-  // Persist logs to localStorage
-  useEffect(() => {
-    localStorage.setItem('baby_logs_v3', JSON.stringify(logs));
-  }, [logs]);
+        const PoopIcon = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M7 15a3 3 0 0 0 3 3 3 3 0 0 0 3-3V9a3 3 0 0 0-3-3 3 3 0 0 0-3 3v6Z" />
+                <path d="M17 15a3 3 0 0 0-3-3 3 3 0 0 0-3 3v2a3 3 0 0 0 3 3 3 3 0 0 0 3-3v-2Z" />
+            </svg>
+        );
 
-  // --- Helpers ---
-  const addLog = (type, label) => {
-    const newEntry = {
-      id: Date.now(),
-      type,
-      label,
-      timestamp: new Date().toISOString(),
-    };
-    setLogs([newEntry, ...logs]);
-    triggerToast(`${label} logged`);
-  };
+        const App = () => {
+            const [logs, setLogs] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('baby_logs_v3');
+                    return saved ? JSON.parse(saved) : [];
+                } catch (e) {
+                    return [];
+                }
+            });
+            const [showNotification, setShowNotification] = useState(null);
+            const [emergencyContact, setEmergencyContact] = useState("Dad");
+            const [isAlerting, setIsAlerting] = useState(false);
+            const [showSettings, setShowSettings] = useState(false);
+            const [isExpanded, setIsExpanded] = useState(false);
 
-  const triggerToast = (msg) => {
-    setShowNotification(msg);
-    setTimeout(() => setShowNotification(null), 3000);
-  };
+            useEffect(() => {
+                localStorage.setItem('baby_logs_v3', JSON.stringify(logs));
+            }, [logs]);
 
-  const sendAlert = () => {
-    setIsAlerting(true);
-    setTimeout(() => {
-      setIsAlerting(false);
-      triggerToast(`Alert sent to ${emergencyContact}`);
-    }, 1500);
-  };
+            const addLog = (type, label) => {
+                const newEntry = { id: Date.now(), type, label, timestamp: new Date().toISOString() };
+                setLogs([newEntry, ...logs]);
+                triggerToast(`${label} logged`);
+            };
 
-  // --- Derived Data ---
-  const todayStr = new Date().toDateString();
-  
-  const dailyStats = useMemo(() => {
-    const todayLogs = logs.filter(log => new Date(log.timestamp).toDateString() === todayStr);
-    return {
-      feed: todayLogs.filter(l => l.type === 'feed').length,
-      pee: todayLogs.filter(l => l.type === 'pee').length,
-      poop: todayLogs.filter(l => l.type === 'poop').length,
-    };
-  }, [logs, todayStr]);
+            const triggerToast = (msg) => {
+                setShowNotification(msg);
+                setTimeout(() => setShowNotification(null), 3000);
+            };
 
-  const recentLogs = logs.slice(0, 4);
+            const sendAlert = () => {
+                setIsAlerting(true);
+                setTimeout(() => {
+                    setIsAlerting(false);
+                    triggerToast(`Alert sent to ${emergencyContact}`);
+                }, 1500);
+            };
 
-  // --- UI Components ---
-  const StatRing = ({ value, label, color, icon: Icon, isPoop = false, max = 10 }) => {
-    const percentage = Math.min((value / max) * 100, 100);
-    return (
-      <div className="flex flex-col items-center">
-        <div className="relative flex items-center justify-center w-16 h-16">
-          <svg className="w-full h-full transform -rotate-90">
-            <circle
-              cx="32"
-              cy="32"
-              r="28"
-              stroke="currentColor"
-              strokeWidth="3"
-              fill="transparent"
-              className="text-[#E2E8F0]/40"
-            />
-            <circle
-              cx="32"
-              cy="32"
-              r="28"
-              stroke="currentColor"
-              strokeWidth="3"
-              fill="transparent"
-              strokeDasharray={175.9}
-              strokeDashoffset={175.9 - (175.9 * percentage) / 100}
-              strokeLinecap="round"
-              className={`${color} transition-all duration-1000 ease-out`}
-            />
-          </svg>
-          <div className="absolute flex flex-col items-center">
-             {isPoop ? <PoopIcon size={14} className={color} /> : <Icon size={14} className={color} />}
-             <span className="text-sm font-medium text-slate-700">{value}</span>
-          </div>
-        </div>
-        <span className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</span>
-      </div>
-    );
-  };
+            const dailyStats = useMemo(() => {
+                const today = new Date().toDateString();
+                const todayLogs = logs.filter(log => new Date(log.timestamp).toDateString() === today);
+                return {
+                    feed: todayLogs.filter(l => l.type === 'feed').length,
+                    pee: todayLogs.filter(l => l.type === 'pee').length,
+                    poop: todayLogs.filter(l => l.type === 'poop').length,
+                };
+            }, [logs]);
 
-  const LogButton = ({ onClick, icon: Icon, isPoop = false, label, bgColor, textColor, borderColor }) => (
-    <button
-      onClick={onClick}
-      className={`flex flex-col items-center justify-center p-5 rounded-[2.5rem] transition-all active:scale-95 shadow-sm border ${bgColor} ${textColor} ${borderColor}`}
-    >
-      {isPoop ? <PoopIcon size={28} className="mb-2 opacity-80" /> : <Icon size={28} className="mb-2 opacity-80" />}
-      <span className="font-semibold text-xs tracking-tight">{label}</span>
-    </button>
-  );
+            const visibleLogs = useMemo(() => {
+                return isExpanded ? logs.slice(0, 10) : logs.slice(0, 5);
+            }, [logs, isExpanded]);
 
-  return (
-    <div className="min-h-screen bg-[#FDFCF9] text-[#4A4A4A] font-sans p-4 pb-12 max-w-md mx-auto relative overflow-hidden">
-      
-      {/* Muted Header */}
-      <header className="flex justify-between items-end mb-10 pt-8 px-2">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#5D6D7E] tracking-tight">nursery log</h1>
-          <p className="text-[#AAB7B8] text-sm font-medium">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).toLowerCase()}
-          </p>
-        </div>
-        <button 
-          onClick={() => setShowSettings(true)}
-          className="p-3 bg-white rounded-full shadow-sm text-slate-300 hover:text-[#AAB7B8] border border-slate-100 transition-colors"
-        >
-          <Settings size={20} />
-        </button>
-      </header>
+            return (
+                <div className="min-h-screen text-[#4A4A4A] p-4 pb-12 max-w-md mx-auto relative overflow-hidden">
+                    <header className="flex justify-between items-end mb-10 pt-8 px-2">
+                        <div>
+                            <h1 className="text-2xl font-semibold text-[#5D6D7E] tracking-tight">nursery log</h1>
+                            <p className="text-[#AAB7B8] text-sm font-medium">
+                                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).toLowerCase()}
+                            </p>
+                        </div>
+                        <button onClick={() => setShowSettings(true)} className="p-3 bg-white rounded-full shadow-sm text-slate-300 border border-slate-100 active:scale-90 transition-transform">
+                            <Icon name="Settings" size={20} />
+                        </button>
+                    </header>
 
-      {/* Summary Card */}
-      <section className="bg-white rounded-[3rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)] mb-8 border border-slate-50">
-        <div className="flex justify-around items-center">
-          <StatRing value={dailyStats.feed} label="feed" color="text-[#A3B18A]" icon={Milk} />
-          <StatRing value={dailyStats.pee} label="pee" color="text-[#9DBAD5]" icon={Droplets} />
-          <StatRing value={dailyStats.poop} label="poop" color="text-[#D4A373]" isPoop={true} />
-        </div>
-      </section>
+                    <section className="bg-white rounded-[3rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)] mb-8 border border-slate-50 flex justify-around">
+                        <StatItem value={dailyStats.feed} label="feed" color="text-[#A3B18A]" icon="Milk" />
+                        <StatItem value={dailyStats.pee} label="pee" color="text-[#9DBAD5]" icon="Droplets" />
+                        <StatItem value={dailyStats.poop} label="poop" color="text-[#D4A373]" isPoop={true} />
+                    </section>
 
-      {/* Buttons - Natural Pastels */}
-      <section className="grid grid-cols-3 gap-4 mb-8">
-        <LogButton 
-          icon={Milk} 
-          label="feed" 
-          onClick={() => addLog('feed', 'Feed')} 
-          bgColor="bg-[#F1F3EE]" 
-          textColor="text-[#588157]" 
-          borderColor="border-[#E3E8DE]"
-        />
-        <LogButton 
-          icon={Droplets} 
-          label="pee" 
-          onClick={() => addLog('pee', 'Pee')} 
-          bgColor="bg-[#EFF4F8]" 
-          textColor="text-[#5D8AA8]" 
-          borderColor="border-[#DCE6EF]"
-        />
-        <LogButton 
-          isPoop={true}
-          label="poop" 
-          onClick={() => addLog('poop', 'Poop')} 
-          bgColor="bg-[#F9F4EF]" 
-          textColor="text-[#B5835A]" 
-          borderColor="border-[#F0E4D8]"
-        />
-      </section>
+                    <section className="grid grid-cols-3 gap-4 mb-8">
+                        <LogBtn icon="Milk" label="feed" color="text-[#588157]" bgColor="bg-[#F1F3EE]" borderColor="border-[#E3E8DE]" onClick={() => addLog('feed', 'Feed')} />
+                        <LogBtn icon="Droplets" label="pee" color="text-[#5D8AA8]" bgColor="bg-[#EFF4F8]" borderColor="border-[#DCE6EF]" onClick={() => addLog('pee', 'Pee')} />
+                        <LogBtn isPoop label="poop" color="text-[#B5835A]" bgColor="bg-[#F9F4EF]" borderColor="border-[#F0E4D8]" onClick={() => addLog('poop', 'Poop')} />
+                    </section>
 
-      {/* Muted Alert Button */}
-      <section className="mb-10">
-        <button
-          onClick={sendAlert}
-          disabled={isAlerting}
-          className={`w-full py-5 rounded-[2rem] flex items-center justify-center space-x-3 transition-all active:scale-[0.98] ${
-            isAlerting ? 'bg-slate-100 text-slate-400' : 'bg-[#E9EDC9] text-[#606C38] border border-[#CCD5AE]'
-          }`}
-        >
-          {isAlerting ? (
-            <span className="text-xs font-bold uppercase tracking-widest">Notifying...</span>
-          ) : (
-            <>
-              <BellRing size={18} />
-              <span className="font-bold tracking-tight">Notify {emergencyContact}</span>
-            </>
-          )}
-        </button>
-      </section>
+                    <button 
+                        onClick={sendAlert} 
+                        disabled={isAlerting} 
+                        className={`w-full py-5 rounded-[2rem] flex items-center justify-center space-x-3 transition-all active:scale-[0.98] ${
+                            isAlerting ? 'bg-slate-100 text-slate-400' : 'bg-[#E9EDC9] text-[#606C38] border border-[#CCD5AE]'
+                        }`}
+                    >
+                        <Icon name="BellRing" size={18} />
+                        <span className="font-bold tracking-tight">{isAlerting ? 'Notifying...' : `Notify ${emergencyContact}`}</span>
+                    </button>
 
-      {/* Recent Activity */}
-      <section className="px-2">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="font-semibold text-lg text-slate-600 tracking-tight flex items-center">
-            <History size={18} className="mr-2 text-slate-300" />
-            recent activity
-          </h2>
-          {logs.length > 0 && (
-             <button 
-              onClick={() => { if(window.confirm("Clear log history?")) setLogs([]) }}
-              className="text-[10px] font-bold text-slate-300 hover:text-rose-300 uppercase tracking-widest"
-             >
-              clear
-             </button>
-          )}
-        </div>
-        
-        {recentLogs.length === 0 ? (
-          <div className="bg-white/50 border border-slate-100 rounded-[2.5rem] p-12 text-center text-slate-300">
-            <Baby size={32} className="mx-auto mb-4 opacity-10" />
-            <p className="text-sm font-medium">ready for first entry</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {recentLogs.map((log) => (
-              <div 
-                key={log.id} 
-                className="bg-white p-5 rounded-[2.2rem] flex items-center shadow-sm border border-slate-50"
-              >
-                <div className={`p-3 rounded-2xl mr-4 ${
-                  log.type === 'feed' ? 'bg-[#F1F3EE] text-[#588157]' :
-                  log.type === 'pee' ? 'bg-[#EFF4F8] text-[#5D8AA8]' :
-                  'bg-[#F9F4EF] text-[#B5835A]'
-                }`}>
-                  {log.type === 'feed' ? <Milk size={18} strokeWidth={1.5} /> : 
-                   log.type === 'pee' ? <Droplets size={18} strokeWidth={1.5} /> : 
-                   <PoopIcon size={18} />}
+                    <section className="mt-10 px-2 pb-10">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="font-semibold text-lg text-slate-600 flex items-center">
+                                <Icon name="History" size={18} className="mr-2 text-slate-300" /> recent activity
+                            </h2>
+                            {logs.length > 0 && (
+                                <button 
+                                    onClick={() => { if(confirm("Clear log history?")) setLogs([]) }}
+                                    className="text-[10px] font-bold text-slate-300 hover:text-rose-300 uppercase tracking-widest"
+                                >
+                                    clear
+                                </button>
+                            )}
+                        </div>
+                        
+                        {visibleLogs.length === 0 ? (
+                            <div className="bg-white/50 border border-slate-100 rounded-[2.5rem] p-12 text-center text-slate-300 text-sm font-medium">ready for first entry</div>
+                        ) : (
+                            <div className="space-y-4">
+                                {visibleLogs.map(log => (
+                                    <div key={log.id} className="bg-white p-5 rounded-[2.2rem] flex items-center shadow-sm border border-slate-50">
+                                        <div className={`p-3 rounded-2xl mr-4 ${
+                                            log.type === 'feed' ? 'bg-[#F1F3EE] text-[#588157]' : 
+                                            log.type === 'pee' ? 'bg-[#EFF4F8] text-[#5D8AA8]' : 
+                                            'bg-[#F9F4EF] text-[#B5835A]'
+                                        }`}>
+                                            {log.type === 'feed' ? <Icon name="Milk" size={18} /> : 
+                                             log.type === 'pee' ? <Icon name="Droplets" size={18} /> : 
+                                             <PoopIcon size={18} />}
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="font-semibold text-slate-700 text-sm">{log.label.toLowerCase()}</p>
+                                            <p className="text-xs font-medium text-slate-300">
+                                                {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                                
+                                {logs.length > 5 && (
+                                    <button 
+                                        onClick={() => setIsExpanded(!isExpanded)}
+                                        className="w-full py-4 text-xs font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center justify-center hover:text-slate-600 transition-colors"
+                                    >
+                                        {isExpanded ? 'Show less' : `Show ${Math.min(logs.length, 10) - 5} more`}
+                                        <Icon name={isExpanded ? "ChevronUp" : "ChevronDown"} size={14} className="ml-2" />
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </section>
+
+                    {showNotification && (
+                        <div className="fixed top-12 left-1/2 -translate-x-1/2 bg-white border border-slate-100 px-6 py-3 rounded-full shadow-xl flex items-center space-x-3 z-50 animate-bounce">
+                            <div className="w-1.5 h-1.5 bg-[#A3B18A] rounded-full" />
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{showNotification}</span>
+                        </div>
+                    )}
+
+                    {showSettings && (
+                        <div className="fixed inset-0 bg-[#4A4A4A]/20 backdrop-blur-md z-50 flex items-end justify-center">
+                            <div className="bg-white w-full max-w-md rounded-t-[3.5rem] p-10 animate-slide-up shadow-2xl">
+                                <div className="flex justify-between mb-8">
+                                    <h2 className="text-xl font-semibold">settings</h2>
+                                    <button onClick={() => setShowSettings(false)} className="text-slate-300 p-2">
+                                        <Icon name="X" size={24} />
+                                    </button>
+                                </div>
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">caregiver contact</label>
+                                <input 
+                                    type="text" 
+                                    value={emergencyContact} 
+                                    onChange={(e) => setEmergencyContact(e.target.value)} 
+                                    className="w-full bg-[#F8F9F9] rounded-2xl p-4 font-medium mb-8 outline-none border border-transparent focus:border-slate-200" 
+                                />
+                                <button 
+                                    onClick={() => setShowSettings(false)} 
+                                    className="w-full bg-[#5D6D7E] text-white py-5 rounded-[2rem] font-bold text-sm uppercase tracking-widest active:scale-95 transition-transform"
+                                >
+                                    save & close
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
-                <div className="flex-1">
-                  <p className="font-semibold text-slate-700 text-sm tracking-tight">{log.label.toLowerCase()}</p>
-                  <p className="text-xs font-medium text-slate-300">
-                    {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase()}
-                  </p>
+            );
+        };
+
+        const StatItem = ({ value, label, color, icon, isPoop }) => (
+            <div className="flex flex-col items-center">
+                <div className="relative flex items-center justify-center w-16 h-16">
+                    <svg className="w-full h-full -rotate-90">
+                        <circle cx="32" cy="32" r="28" stroke="#E2E8F0" strokeWidth="3" fill="transparent" opacity="0.4" />
+                        <circle 
+                            cx="32" cy="32" r="28" 
+                            stroke="currentColor" 
+                            strokeWidth="3" 
+                            fill="transparent" 
+                            strokeDasharray="175.9" 
+                            strokeDashoffset={175.9 - (175.9 * Math.min(value * 10, 100)) / 100} 
+                            strokeLinecap="round" 
+                            className={`${color} transition-all duration-700`} 
+                        />
+                    </svg>
+                    <div className="absolute flex flex-col items-center">
+                        {isPoop ? <PoopIcon size={14} className={color} /> : <Icon name={icon} size={14} className={color} />}
+                        <span className="text-sm font-medium mt-0.5">{value}</span>
+                    </div>
                 </div>
-                <ChevronRight size={14} className="text-slate-200" />
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Toast Notification */}
-      {showNotification && (
-        <div className="fixed top-12 left-1/2 transform -translate-x-1/2 bg-white border border-slate-100 px-6 py-3 rounded-full shadow-xl flex items-center space-x-3 z-50">
-          <div className="w-1.5 h-1.5 bg-[#A3B18A] rounded-full" />
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{showNotification}</span>
-        </div>
-      )}
-
-      {/* Settings Modal */}
-      {showSettings && (
-        <div className="fixed inset-0 bg-[#4A4A4A]/20 backdrop-blur-md z-50 flex items-end justify-center">
-          <div className="bg-white w-full max-w-md rounded-t-[3.5rem] p-10 shadow-2xl animate-slide-up">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-xl font-semibold text-slate-700">settings</h2>
-              <button 
-                onClick={() => setShowSettings(false)} 
-                className="text-slate-300 hover:text-slate-500"
-              >
-                <X size={24} />
-              </button>
+                <span className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</span>
             </div>
-            <div className="space-y-8">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">caregiver contact</label>
-                <input 
-                  type="text" 
-                  value={emergencyContact}
-                  onChange={(e) => setEmergencyContact(e.target.value)}
-                  className="w-full bg-[#F8F9F9] border-none rounded-2xl p-4 font-medium text-slate-600 outline-none focus:ring-1 focus:ring-[#AAB7B8] transition-all"
-                  placeholder="name..."
-                />
-              </div>
-              <button 
-                onClick={() => setShowSettings(false)}
-                className="w-full bg-[#5D6D7E] text-white py-5 rounded-[2rem] font-bold text-sm tracking-widest uppercase shadow-md active:scale-95 transition-all"
-              >
-                save & close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        );
 
-      <style>{`
-        @keyframes slide-up {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
-        }
-        .animate-slide-up {
-          animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-      `}</style>
-    </div>
-  );
-};
+        const LogBtn = ({ icon, label, bgColor, color, borderColor, onClick, isPoop }) => (
+            <button 
+                onClick={onClick} 
+                className={`flex flex-col items-center justify-center p-5 rounded-[2.5rem] shadow-sm border ${bgColor} ${color} ${borderColor} active:scale-95 transition-all`}
+            >
+                {isPoop ? <PoopIcon size={28} className="mb-2 opacity-80" /> : <Icon name={icon} size={28} className="mb-2 opacity-80" />}
+                <span className="font-semibold text-xs">{label}</span>
+            </button>
+        );
 
-export default App;
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
